@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRos } from "@/lib/use-ros";
 import { TouchscreenTest } from "./touchscreen-test";
+import { EnhancedTouchscreenTest } from "./enhanced-touchscreen-test";
 import { DiagnosticResults } from "./diagnostic-results";
 import { DiagnosticReport } from "./diagnostic-report";
 import { TestSuite } from "./test-suite";
@@ -18,15 +19,39 @@ interface TouchTestResult {
   touchPoints: any[];
 }
 
-interface TestSuiteResult {
-  touchscreen?: TouchTestResult;
+interface ShapeTracingResult {
+  shape: "square" | "circle";
+  accuracy: number;
+  completionTime: number;
+  tracePoints: Array<{ x: number; y: number; timestamp: number }>;
+  totalDistance: number;
+  deviationScore: number;
 }
 
-type AppState = "setup" | "testing" | "test-suite" | "results";
+interface EnhancedTouchTestResult {
+  basicTouch: TouchTestResult;
+  squareTracing: ShapeTracingResult;
+  circleTracing: ShapeTracingResult;
+  overallScore: number;
+}
+
+interface TestSuiteResult {
+  touchscreen?: EnhancedTouchTestResult;
+}
+
+type AppState =
+  | "setup"
+  | "testing"
+  | "enhanced-touch"
+  | "test-suite"
+  | "results";
 
 export function DiagnosticApp() {
   const [appState, setAppState] = useState<AppState>("setup");
   const [testResult, setTestResult] = useState<TouchTestResult | null>(null);
+  const [enhancedTestResult, setEnhancedTestResult] = useState<any | null>(
+    null
+  );
   const [suiteResults, setSuiteResults] = useState<TestSuiteResult | null>(
     null
   );
@@ -65,6 +90,18 @@ export function DiagnosticApp() {
     setAppState("testing");
   }, []);
 
+  const handleEnhancedTestComplete = useCallback((result: any) => {
+    setEnhancedTestResult(result);
+    setAppState("results");
+    setPublishSuccess(undefined);
+  }, []);
+
+  const handleEnhancedRetry = useCallback(() => {
+    setEnhancedTestResult(null);
+    setAppState("enhanced-touch");
+    setPublishSuccess(undefined);
+  }, []);
+
   const handleStartTestSuite = useCallback(() => {
     setAppState("test-suite");
   }, []);
@@ -81,6 +118,7 @@ export function DiagnosticApp() {
 
       setIsPublishing(true);
 
+      const touchscreen = results.touchscreen;
       // Prepare diagnostic message
       const diagnosticMessage = {
         header: {
@@ -92,29 +130,41 @@ export function DiagnosticApp() {
         },
         name: "test_suite",
         message: `Test suite completed. Touchscreen: Multi-touch: ${
-          results.touchscreen.multiTouchSupported
+          touchscreen.basicTouch.multiTouchSupported
         }, Max touches: ${
-          results.touchscreen.maxSimultaneousTouches
-        }, Response time: ${results.touchscreen.averageResponseTime.toFixed(
+          touchscreen.basicTouch.maxSimultaneousTouches
+        }, Response time: ${touchscreen.basicTouch.averageResponseTime.toFixed(
           2
-        )}ms`,
+        )}ms, Overall score: ${touchscreen.overallScore}%`,
         hardware_id: "mobile_test_suite",
         values: [
           {
             key: "suite_multi_touch_supported",
-            value: results.touchscreen.multiTouchSupported.toString(),
+            value: touchscreen.basicTouch.multiTouchSupported.toString(),
           },
           {
             key: "suite_max_simultaneous_touches",
-            value: results.touchscreen.maxSimultaneousTouches.toString(),
+            value: touchscreen.basicTouch.maxSimultaneousTouches.toString(),
           },
           {
             key: "suite_average_response_time_ms",
-            value: results.touchscreen.averageResponseTime.toFixed(2),
+            value: touchscreen.basicTouch.averageResponseTime.toFixed(2),
           },
           {
             key: "suite_total_touches",
-            value: results.touchscreen.totalTouches.toString(),
+            value: touchscreen.basicTouch.totalTouches.toString(),
+          },
+          {
+            key: "suite_overall_score",
+            value: touchscreen.overallScore.toString(),
+          },
+          {
+            key: "suite_square_accuracy",
+            value: touchscreen.squareTracing.accuracy.toString(),
+          },
+          {
+            key: "suite_circle_accuracy",
+            value: touchscreen.circleTracing.accuracy.toString(),
           },
         ],
       };
@@ -205,6 +255,12 @@ export function DiagnosticApp() {
     return <TouchscreenTest onTestComplete={handleTestComplete} />;
   }
 
+  if (appState === "enhanced-touch") {
+    return (
+      <EnhancedTouchscreenTest onTestComplete={handleEnhancedTestComplete} />
+    );
+  }
+
   if (appState === "test-suite") {
     return (
       <TestSuite
@@ -225,6 +281,22 @@ export function DiagnosticApp() {
           result={testResult}
           onRetry={handleRetry}
           onPublishResult={handlePublishResult}
+          isPublishing={isPublishing}
+          publishSuccess={publishSuccess}
+          rosConnected={isConnected}
+        />
+      );
+    }
+    // Show enhanced test results
+    if (enhancedTestResult) {
+      const enhancedSuiteResult: TestSuiteResult = {
+        touchscreen: enhancedTestResult,
+      };
+      return (
+        <DiagnosticReport
+          results={enhancedSuiteResult}
+          onRetry={handleEnhancedRetry}
+          onPublishResult={() => handleSuitePublish(enhancedSuiteResult)}
           isPublishing={isPublishing}
           publishSuccess={publishSuccess}
           rosConnected={isConnected}
@@ -352,18 +424,39 @@ export function DiagnosticApp() {
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Individual Tests
               </h4>
-              <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="font-medium text-gray-900">
-                    Touchscreen Test
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Test multi-touch functionality and response time
-                  </p>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      Enhanced Touchscreen Test
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Multi-touch, square tracing, and circle tracing with
+                      scoring
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setAppState("enhanced-touch")}
+                    variant="outline"
+                  >
+                    Start
+                  </Button>
                 </div>
-                <Button onClick={handleStartTest} variant="outline">
-                  Start
-                </Button>
+
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      Basic Touchscreen Test
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Simple multi-touch functionality and response time test
+                    </p>
+                  </div>
+                  <Button onClick={handleStartTest} variant="outline">
+                    Start
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -396,7 +489,7 @@ export function DiagnosticApp() {
 
         {/* Footer */}
         <div className="text-center text-sm text-gray-500 pt-4">
-          <p>Robothon 2024 • Mobile Diagnostics v1.0</p>
+          <p>Robothon 2025 • Bharath chomu</p>
         </div>
       </div>
     </div>

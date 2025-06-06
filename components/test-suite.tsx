@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Stepper, Step, StepStatus } from "@/components/ui/stepper";
 import { TouchscreenTest } from "./touchscreen-test";
+import { EnhancedTouchscreenTest } from "./enhanced-touchscreen-test";
 import { DiagnosticReport } from "./diagnostic-report";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, SkipForward } from "lucide-react";
@@ -21,8 +22,24 @@ interface TouchTestResult {
   }>;
 }
 
+interface ShapeTracingResult {
+  shape: "square" | "circle";
+  accuracy: number;
+  completionTime: number;
+  tracePoints: Array<{ x: number; y: number; timestamp: number }>;
+  totalDistance: number;
+  deviationScore: number;
+}
+
+interface EnhancedTouchTestResult {
+  basicTouch: TouchTestResult;
+  squareTracing: ShapeTracingResult;
+  circleTracing: ShapeTracingResult;
+  overallScore: number;
+}
+
 interface TestSuiteResult {
-  touchscreen?: TouchTestResult;
+  touchscreen?: EnhancedTouchTestResult;
   // Future tests can be added here
   // camera?: CameraTestResult;
   // sensors?: SensorTestResult;
@@ -81,7 +98,7 @@ export function TestSuite({
   }, []);
 
   const handleTouchscreenComplete = useCallback(
-    (result: TouchTestResult) => {
+    (result: EnhancedTouchTestResult) => {
       const newResults = { ...results, touchscreen: result };
       setResults(newResults);
       updateStepStatus("touchscreen", "completed");
@@ -238,7 +255,7 @@ export function TestSuite({
       {/* Current Test Content */}
       <div className="pt-4">
         {currentStep.id === "touchscreen" && !isPaused && (
-          <TouchscreenTest onTestComplete={handleTouchscreenComplete} />
+          <EnhancedTouchscreenTest onTestComplete={handleTouchscreenComplete} />
         )}
 
         {currentStep.id === "camera" && (
