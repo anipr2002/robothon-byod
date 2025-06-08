@@ -39,9 +39,9 @@ export function ShapeTracingTest({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPath = useRef<TracePoint[]>([]);
 
-  const shapeSize = 200;
-  const centerX = 200;
-  const centerY = 200;
+  const shapeSize = 180;
+  const centerX = 175;
+  const centerY = 175;
 
   // Generate ideal shape points for comparison
   const generateIdealShapePoints = useCallback(
@@ -360,28 +360,28 @@ export function ShapeTracingTest({
 
   if (!hasStarted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-6 bg-gray-50">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-4 bg-gray-50">
+        <div className="text-center space-y-3">
+          <h2 className="text-xl font-bold text-gray-900">
             Trace the {shape === "square" ? "Square" : "Circle"}
           </h2>
-          <p className="text-gray-600 max-w-md">
+          <p className="text-gray-600 text-sm max-w-sm">
             Starting from the green dot, trace the shape with your finger as
             accurately as possible.
           </p>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
+          <div className="bg-white rounded-lg p-3 shadow-sm">
             <canvas
               ref={canvasRef}
-              width={400}
-              height={400}
+              width={350}
+              height={350}
               className="border border-gray-200 rounded"
             />
           </div>
           <div className="text-center">
-            <p className="text-lg font-semibold text-blue-600">
+            <p className="text-sm font-semibold text-blue-600">
               Starting automatically...
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500">
               Test duration: {testDuration / 1000} seconds
             </p>
           </div>
@@ -391,20 +391,20 @@ export function ShapeTracingTest({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
-      {/* Test Status Bar */}
-      <div className="absolute top-0 left-0 right-0 bg-white shadow-sm p-4 z-10">
-        <div className="flex justify-between items-center">
-          <div className="text-sm font-medium text-gray-900">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Compact Status Bar */}
+      <div className="bg-white/90 backdrop-blur-sm p-2 border-b">
+        <div className="flex justify-between items-center text-sm">
+          <span className="font-medium text-gray-900">
             Trace the {shape === "square" ? "Square" : "Circle"}
-          </div>
-          <div className="text-sm text-gray-600">
-            Time: {Math.ceil(timeRemaining / 1000)}s
-          </div>
+          </span>
+          <span className="text-gray-600">
+            {Math.ceil(timeRemaining / 1000)}s
+          </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+        <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+            className="bg-blue-600 h-1 rounded-full transition-all duration-1000"
             style={{
               width: `${
                 ((testDuration - timeRemaining) / testDuration) * 100
@@ -414,13 +414,13 @@ export function ShapeTracingTest({
         </div>
       </div>
 
-      {/* Canvas Area */}
-      <div className="absolute inset-0 pt-20 flex items-center justify-center">
-        <div className="bg-white rounded-lg p-6 shadow-lg">
+      {/* Canvas Area - Centered with visible finish button */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 space-y-4">
+        <div className="bg-white rounded-lg p-4 shadow-lg">
           <canvas
             ref={canvasRef}
-            width={400}
-            height={400}
+            width={350}
+            height={350}
             className="border border-gray-200 rounded cursor-pointer"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -430,14 +430,19 @@ export function ShapeTracingTest({
             onMouseUp={handleTouchEnd}
             style={{ touchAction: "none" }}
           />
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-600">
-              Points traced: {tracePoints.length}
-            </p>
-            <Button onClick={finishTest} variant="outline" className="mt-2">
-              Finish Early
-            </Button>
-          </div>
+        </div>
+
+        {/* Stats and Finish Button - Always visible */}
+        <div className="text-center space-y-2">
+          <p className="text-sm text-gray-600">
+            Points traced: {tracePoints.length}
+          </p>
+          <Button
+            onClick={finishTest}
+            className="bg-green-600 hover:bg-green-700 px-6 py-2"
+          >
+            Finish Test
+          </Button>
         </div>
       </div>
     </div>

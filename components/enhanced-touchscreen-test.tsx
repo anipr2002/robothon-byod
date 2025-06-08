@@ -188,29 +188,33 @@ export function EnhancedTouchscreenTest({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Stepper */}
-      <div className="bg-white shadow-sm p-4">
+      {/* Compact Progress Indicator */}
+      <div className="bg-white/90 backdrop-blur-sm p-3 border-b">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-900">
-              Enhanced Touchscreen Test
-            </h1>
-            <div className="text-sm text-gray-600">
-              Step {currentStepIndex + 1} of {testSteps.length}
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-gray-900">
+              {currentStep.title} ({currentStepIndex + 1}/{testSteps.length})
+            </span>
+            <div className="flex space-x-1">
+              {testSteps.map((step, index) => (
+                <div
+                  key={step.id}
+                  className={`w-2 h-2 rounded-full ${
+                    index === currentStepIndex
+                      ? "bg-blue-600"
+                      : stepStatuses[step.id] === "completed"
+                      ? "bg-green-600"
+                      : "bg-gray-300"
+                  }`}
+                />
+              ))}
             </div>
           </div>
-
-          <Stepper
-            steps={testSteps}
-            currentStep={currentStepIndex}
-            stepStatuses={stepStatuses}
-            orientation="horizontal"
-          />
         </div>
       </div>
 
-      {/* Current Test Content */}
-      <div className="pt-4">
+      {/* Current Test Content - No extra padding */}
+      <div>
         {currentStep.id === "square-tracing" && (
           <ShapeTracingTest
             shape="square"

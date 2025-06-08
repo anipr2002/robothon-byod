@@ -37,6 +37,17 @@ interface EnhancedTouchTestResult {
 
 interface TestSuiteResult {
   touchscreen?: EnhancedTouchTestResult;
+  displayDefect?: {
+    testCompleted: boolean;
+    duration: number;
+    timestamp: number;
+  };
+  proximitySensor?: {
+    sensorActivated: boolean;
+    activationTime: number;
+    testDuration: number;
+    success: boolean;
+  };
 }
 
 type AppState =
@@ -114,68 +125,144 @@ export function DiagnosticApp() {
 
   const handleSuitePublish = useCallback(
     (results: TestSuiteResult) => {
-      if (!isConnected || !results.touchscreen) return;
+      if (!isConnected) return;
 
       setIsPublishing(true);
 
-      const touchscreen = results.touchscreen;
-      // Prepare diagnostic message
-      const diagnosticMessage = {
-        header: {
-          stamp: {
-            sec: Math.floor(Date.now() / 1000),
-            nanosec: (Date.now() % 1000) * 1000000,
+      const diagnosticStatuses = [];
+
+      // Add touchscreen results if available
+      if (results.touchscreen) {
+        const touchscreen = results.touchscreen;
+        diagnosticStatuses.push({
+          header: {
+            stamp: {
+              sec: Math.floor(Date.now() / 1000),
+              nanosec: (Date.now() % 1000) * 1000000,
+            },
+            frame_id: "touchscreen_diagnostic",
           },
-          frame_id: "test_suite_diagnostic",
-        },
-        name: "test_suite",
-        message: `Test suite completed. Touchscreen: Multi-touch: ${
-          touchscreen.basicTouch.multiTouchSupported
-        }, Max touches: ${
-          touchscreen.basicTouch.maxSimultaneousTouches
-        }, Response time: ${touchscreen.basicTouch.averageResponseTime.toFixed(
-          2
-        )}ms, Overall score: ${touchscreen.overallScore}%`,
-        hardware_id: "mobile_test_suite",
-        values: [
-          {
-            key: "suite_multi_touch_supported",
-            value: touchscreen.basicTouch.multiTouchSupported.toString(),
+          name: "touchscreen_test",
+          message: `Touchscreen test completed. Multi-touch: ${
+            touchscreen.basicTouch.multiTouchSupported
+          }, Max touches: ${
+            touchscreen.basicTouch.maxSimultaneousTouches
+          }, Response time: ${touchscreen.basicTouch.averageResponseTime.toFixed(
+            2
+          )}ms, Overall score: ${touchscreen.overallScore}%`,
+          hardware_id: "mobile_test_suite",
+          values: [
+            {
+              key: "multi_touch_supported",
+              value: touchscreen.basicTouch.multiTouchSupported.toString(),
+            },
+            {
+              key: "max_simultaneous_touches",
+              value: touchscreen.basicTouch.maxSimultaneousTouches.toString(),
+            },
+            {
+              key: "average_response_time_ms",
+              value: touchscreen.basicTouch.averageResponseTime.toFixed(2),
+            },
+            {
+              key: "total_touches",
+              value: touchscreen.basicTouch.totalTouches.toString(),
+            },
+            {
+              key: "overall_score",
+              value: touchscreen.overallScore.toString(),
+            },
+            {
+              key: "square_accuracy",
+              value: touchscreen.squareTracing.accuracy.toString(),
+            },
+            {
+              key: "circle_accuracy",
+              value: touchscreen.circleTracing.accuracy.toString(),
+            },
+          ],
+        });
+      }
+
+      // Add display defect results if available
+      if (results.displayDefect) {
+        const display = results.displayDefect;
+        diagnosticStatuses.push({
+          header: {
+            stamp: {
+              sec: Math.floor(Date.now() / 1000),
+              nanosec: (Date.now() % 1000) * 1000000,
+            },
+            frame_id: "display_diagnostic",
           },
-          {
-            key: "suite_max_simultaneous_touches",
-            value: touchscreen.basicTouch.maxSimultaneousTouches.toString(),
+          name: "display_defect_test",
+          message: `Display defect test completed. Duration: ${display.duration}ms`,
+          hardware_id: "mobile_test_suite",
+          values: [
+            {
+              key: "test_completed",
+              value: display.testCompleted.toString(),
+            },
+            {
+              key: "duration_ms",
+              value: display.duration.toString(),
+            },
+            {
+              key: "timestamp",
+              value: display.timestamp.toString(),
+            },
+          ],
+        });
+      }
+
+      // Add proximity sensor results if available
+      if (results.proximitySensor) {
+        const proximity = results.proximitySensor;
+        diagnosticStatuses.push({
+          header: {
+            stamp: {
+              sec: Math.floor(Date.now() / 1000),
+              nanosec: (Date.now() % 1000) * 1000000,
+            },
+            frame_id: "proximity_diagnostic",
           },
-          {
-            key: "suite_average_response_time_ms",
-            value: touchscreen.basicTouch.averageResponseTime.toFixed(2),
-          },
-          {
-            key: "suite_total_touches",
-            value: touchscreen.basicTouch.totalTouches.toString(),
-          },
-          {
-            key: "suite_overall_score",
-            value: touchscreen.overallScore.toString(),
-          },
-          {
-            key: "suite_square_accuracy",
-            value: touchscreen.squareTracing.accuracy.toString(),
-          },
-          {
-            key: "suite_circle_accuracy",
-            value: touchscreen.circleTracing.accuracy.toString(),
-          },
-        ],
-      };
+          name: "proximity_sensor_test",
+          message: `Proximity sensor test completed. Success: ${proximity.success}, Activation time: ${proximity.activationTime}ms`,
+          hardware_id: "mobile_test_suite",
+          values: [
+            {
+              key: "sensor_activated",
+              value: proximity.sensorActivated.toString(),
+            },
+            {
+              key: "activation_time_ms",
+              value: proximity.activationTime.toString(),
+            },
+            {
+              key: "test_duration_ms",
+              value: proximity.testDuration.toString(),
+            },
+            {
+              key: "success",
+              value: proximity.success.toString(),
+            },
+          ],
+        });
+      }
 
       // Publish to ROS topic
       const success = publishMessage(
         "/diagnostics",
         "diagnostic_msgs/DiagnosticArray",
         {
-          header: diagnosticMessage.header,
-          status: [diagnosticMessage],
+          header: {
+            stamp: {
+              sec: Math.floor(Date.now() / 1000),
+              nanosec: (Date.now() % 1000) * 1000000,
+            },
+            frame_id: "test_suite_diagnostic",
+          },
+          status: diagnosticStatuses,
         }
       );
 
@@ -269,6 +356,7 @@ export function DiagnosticApp() {
         isPublishing={isPublishing}
         publishSuccess={publishSuccess}
         rosConnected={isConnected}
+        rosUrl={rosUrl}
       />
     );
   }

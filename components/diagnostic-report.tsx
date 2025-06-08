@@ -58,11 +58,23 @@ interface EnhancedTouchTestResult {
   overallScore: number;
 }
 
+interface DisplayDefectResult {
+  testCompleted: boolean;
+  duration: number;
+  timestamp: number;
+}
+
+interface ProximitySensorResult {
+  sensorActivated: boolean;
+  activationTime: number;
+  testDuration: number;
+  success: boolean;
+}
+
 interface TestSuiteResult {
   touchscreen?: EnhancedTouchTestResult;
-  // Future tests can be added here
-  // camera?: CameraTestResult;
-  // sensors?: SensorTestResult;
+  displayDefect?: DisplayDefectResult;
+  proximitySensor?: ProximitySensorResult;
 }
 
 interface DiagnosticReportProps {
@@ -101,9 +113,9 @@ export function DiagnosticReport({
   publishSuccess,
   rosConnected,
 }: DiagnosticReportProps) {
-  const { touchscreen } = results;
+  const { touchscreen, displayDefect, proximitySensor } = results;
 
-  if (!touchscreen) {
+  if (!touchscreen && !displayDefect && !proximitySensor) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
@@ -111,7 +123,7 @@ export function DiagnosticReport({
             No Test Results
           </h1>
           <p className="text-gray-600 mb-6">
-            No touchscreen test results available to display.
+            No test results available to display.
           </p>
           <Button onClick={onRetry}>Run Tests</Button>
         </div>
@@ -119,47 +131,118 @@ export function DiagnosticReport({
     );
   }
 
-  // Use the already calculated overall score from enhanced test
-  const overallScore = touchscreen.overallScore;
+  // Calculate overall score based on all completed tests
+  const calculateOverallScore = () => {
+    let totalScore = 0;
+    let testCount = 0;
 
-  // Prepare chart data using enhanced test structure
-  const performanceData = [
-    {
+    if (touchscreen) {
+      let touchScore = 0;
+      if (touchscreen.basicTouch.multiTouchSupported) touchScore += 20;
+      if (touchscreen.basicTouch.averageResponseTime < 100) touchScore += 20;
+      if (touchscreen.basicTouch.maxSimultaneousTouches >= 2) touchScore += 20;
+      if (touchscreen.squareTracing.accuracy >= 70) touchScore += 20;
+      if (touchscreen.circleTracing.accuracy >= 70) touchScore += 20;
+      totalScore += touchScore;
+      testCount++;
+    }
+
+    if (displayDefect) {
+      const displayScore = displayDefect.testCompleted ? 100 : 0;
+      totalScore += displayScore;
+      testCount++;
+    }
+
+    if (proximitySensor) {
+      const sensorScore = proximitySensor.success ? 100 : 0;
+      totalScore += sensorScore;
+      testCount++;
+    }
+
+    return testCount > 0 ? Math.round(totalScore / testCount) : 0;
+  };
+
+  const overallScore = calculateOverallScore();
+
+  // Prepare chart data using the new test structure
+  const performanceData = [];
+
+  if (touchscreen) {
+    performanceData.push({
       metric: "Response Time",
       value: touchscreen.basicTouch.averageResponseTime,
       threshold: 100,
       status:
         touchscreen.basicTouch.averageResponseTime < 100 ? "Good" : "Poor",
-    },
-    {
+    });
+    performanceData.push({
       metric: "Square Accuracy",
       value: touchscreen.squareTracing.accuracy,
       threshold: 70,
       status: touchscreen.squareTracing.accuracy >= 70 ? "Good" : "Poor",
-    },
-    {
+    });
+    performanceData.push({
       metric: "Circle Accuracy",
       value: touchscreen.circleTracing.accuracy,
       threshold: 70,
       status: touchscreen.circleTracing.accuracy >= 70 ? "Good" : "Poor",
-    },
-  ];
+    });
+  }
 
-  const testResults = [
-    { name: "Multi-touch", passed: touchscreen.basicTouch.multiTouchSupported },
-    {
-      name: "Response Time",
-      passed: touchscreen.basicTouch.averageResponseTime < 100,
-    },
-    {
-      name: "Square Tracing",
-      passed: touchscreen.squareTracing.accuracy >= 70,
-    },
-    {
-      name: "Circle Tracing",
-      passed: touchscreen.circleTracing.accuracy >= 70,
-    },
-  ];
+  if (displayDefect) {
+    performanceData.push({
+      metric: "Display Test",
+      value: displayDefect.testCompleted ? 100 : 0,
+      threshold: 100,
+      status: displayDefect.testCompleted ? "Good" : "Poor",
+    });
+  }
+
+  if (proximitySensor) {
+    performanceData.push({
+      metric: "Proximity Sensor",
+      value: proximitySensor.success ? 100 : 0,
+      threshold: 100,
+      status: proximitySensor.success ? "Good" : "Poor",
+    });
+  }
+
+  const testResults: Array<{ name: string; passed: boolean }> = [];
+
+  if (touchscreen) {
+    testResults.push(
+      {
+        name: "Multi-touch",
+        passed: touchscreen.basicTouch.multiTouchSupported,
+      },
+      {
+        name: "Response Time",
+        passed: touchscreen.basicTouch.averageResponseTime < 100,
+      },
+      {
+        name: "Square Tracing",
+        passed: touchscreen.squareTracing.accuracy >= 70,
+      },
+      {
+        name: "Circle Tracing",
+        passed: touchscreen.circleTracing.accuracy >= 70,
+      }
+    );
+  }
+
+  if (displayDefect) {
+    testResults.push({
+      name: "Display Defect",
+      passed: displayDefect.testCompleted,
+    });
+  }
+
+  if (proximitySensor) {
+    testResults.push({
+      name: "Proximity Sensor",
+      passed: proximitySensor.success,
+    });
+  }
 
   const passFailData = [
     {
@@ -175,24 +258,26 @@ export function DiagnosticReport({
   ];
 
   // Touch distribution over time (simplified)
-  const touchDistribution = touchscreen.basicTouch.touchPoints
-    .reduce(
-      (acc: { time: number; count: number }[], touch: any, index: number) => {
-        const timeSlot = Math.floor(
-          (touch.timestamp - touchscreen.basicTouch.touchPoints[0]?.timestamp ||
-            0) / 1000
-        );
-        const existing = acc.find((item: any) => item.time === timeSlot);
-        if (existing) {
-          existing.count++;
-        } else {
-          acc.push({ time: timeSlot, count: 1 });
-        }
-        return acc;
-      },
-      [] as { time: number; count: number }[]
-    )
-    .slice(0, 10); // Limit to first 10 seconds
+  const touchDistribution =
+    touchscreen?.basicTouch.touchPoints
+      .reduce(
+        (acc: { time: number; count: number }[], touch: any, index: number) => {
+          const timeSlot = Math.floor(
+            (touch.timestamp -
+              (touchscreen?.basicTouch.touchPoints[0]?.timestamp || 0)) /
+              1000
+          );
+          const existing = acc.find((item: any) => item.time === timeSlot);
+          if (existing) {
+            existing.count++;
+          } else {
+            acc.push({ time: timeSlot, count: 1 });
+          }
+          return acc;
+        },
+        [] as { time: number; count: number }[]
+      )
+      .slice(0, 10) || []; // Limit to first 10 seconds
 
   const handleExportReport = () => {
     const reportData = {
@@ -373,9 +458,7 @@ export function DiagnosticReport({
           </h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">
-                Touchscreen Analysis
-              </h4>
+              <h4 className="font-medium text-gray-900">Test Results</h4>
 
               {testResults.map((test, index) => (
                 <div
@@ -404,38 +487,105 @@ export function DiagnosticReport({
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Raw Metrics</h4>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Multi-touch Support:</span>
-                  <span className="font-medium">
-                    {touchscreen.basicTouch.multiTouchSupported ? "Yes" : "No"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    Max Simultaneous Touches:
-                  </span>
-                  <span className="font-medium">
-                    {touchscreen.basicTouch.maxSimultaneousTouches}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Average Response Time:</span>
-                  <span className="font-medium">
-                    {touchscreen.basicTouch.averageResponseTime.toFixed(2)}ms
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Touches:</span>
-                  <span className="font-medium">
-                    {touchscreen.basicTouch.totalTouches}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Test Duration:</span>
-                  <span className="font-medium">
-                    {touchscreen.basicTouch.testDuration / 1000}s
-                  </span>
-                </div>
+                {touchscreen && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Multi-touch Support:
+                      </span>
+                      <span className="font-medium">
+                        {touchscreen.basicTouch.multiTouchSupported
+                          ? "Yes"
+                          : "No"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Max Simultaneous Touches:
+                      </span>
+                      <span className="font-medium">
+                        {touchscreen.basicTouch.maxSimultaneousTouches}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Average Response Time:
+                      </span>
+                      <span className="font-medium">
+                        {touchscreen.basicTouch.averageResponseTime.toFixed(2)}
+                        ms
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Touches:</span>
+                      <span className="font-medium">
+                        {touchscreen.basicTouch.totalTouches}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Test Duration:</span>
+                      <span className="font-medium">
+                        {touchscreen.basicTouch.testDuration / 1000}s
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Square Accuracy:</span>
+                      <span className="font-medium">
+                        {touchscreen.squareTracing.accuracy.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Circle Accuracy:</span>
+                      <span className="font-medium">
+                        {touchscreen.circleTracing.accuracy.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Overall Score:</span>
+                      <span className="font-medium">
+                        {touchscreen.overallScore}%
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {displayDefect && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Display Test:</span>
+                      <span className="font-medium">
+                        {displayDefect.testCompleted ? "Completed" : "Failed"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Duration:</span>
+                      <span className="font-medium">
+                        {(displayDefect.duration / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {proximitySensor && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Proximity Sensor:</span>
+                      <span className="font-medium">
+                        {proximitySensor.success ? "Activated" : "Failed"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Activation Time:</span>
+                      <span className="font-medium">
+                        {proximitySensor.sensorActivated
+                          ? `${(proximitySensor.activationTime / 1000).toFixed(
+                              1
+                            )}s`
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
