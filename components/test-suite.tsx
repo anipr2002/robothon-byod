@@ -229,11 +229,9 @@ export function TestSuite({
       updateStepStatus("proximity", "completed");
       publishTestMessage("proximitySensor", result);
 
-      // Automatically continue to next test
-      setTimeout(() => {
-        setCurrentStepIndex(3);
-        updateStepStatus("report", "active");
-      }, 1000);
+      // Immediately update the step index and status
+      setCurrentStepIndex(3);
+      updateStepStatus("report", "active");
     },
     [results, updateStepStatus, publishTestMessage]
   );
