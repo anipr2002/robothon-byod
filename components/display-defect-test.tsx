@@ -22,7 +22,7 @@ export function DisplayDefectTest({
   const [testState, setTestState] = useState<"ready" | "running" | "completed">(
     "ready"
   );
-  const [currentColor, setCurrentColor] = useState<"red" | "green" | null>(
+  const [currentColor, setCurrentColor] = useState<"red" | "blue" | "green" | null>(
     null
   );
   const [startTime, setStartTime] = useState<number>(0);
@@ -50,12 +50,17 @@ export function DisplayDefectTest({
     let colorTimer: NodeJS.Timeout;
 
     if (currentColor === "red") {
-      // Show red for 3 seconds
+      // Show red for 7 seconds
       colorTimer = setTimeout(() => {
         setCurrentColor("green");
-      }, 3000);
+      }, 7000);
     } else if (currentColor === "green") {
-      // Show green for 3 seconds, then complete
+      // Show green for 7 seconds
+      colorTimer = setTimeout(() => {
+        setCurrentColor("blue");
+      }, 7000);
+    } else if (currentColor === "blue") {
+      // Show blue for 7 seconds, then complete
       colorTimer = setTimeout(() => {
         setTestState("completed");
         const duration = Date.now() - startTime;
@@ -67,7 +72,7 @@ export function DisplayDefectTest({
         };
 
         onTestComplete(result);
-      }, 3000);
+      }, 7000);
     }
 
     return () => {
@@ -79,6 +84,8 @@ export function DisplayDefectTest({
     switch (currentColor) {
       case "red":
         return "rgb(255, 0, 0)";
+      case "blue":
+        return "rgb(0, 0, 255)";
       case "green":
         return "rgb(0, 255, 0)";
       default:
@@ -89,8 +96,8 @@ export function DisplayDefectTest({
   const getColorProgress = () => {
     if (testState !== "running") return 0;
 
-    const timeInCurrentColor = elapsedTime % 3000;
-    return (timeInCurrentColor / 3000) * 100;
+    const timeInCurrentColor = elapsedTime % 7000;
+    return (timeInCurrentColor / 7000) * 100;
   };
 
   if (testState === "completed") {
@@ -112,37 +119,9 @@ export function DisplayDefectTest({
   if (testState === "running") {
     return (
       <div
-        className="min-h-screen w-full relative flex items-center justify-center"
+        className="fixed inset-0 w-full h-full"
         style={{ backgroundColor: getBackgroundColor() }}
-      >
-        {/* Floating Status - Always visible at top */}
-        {showFloatingControls && (
-          <div className="fixed top-16 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-3 py-1 rounded-full z-40">
-            <div className="text-center">
-              <div className="text-xs font-medium">
-                {currentColor?.toUpperCase()} -{" "}
-                {Math.ceil((3000 - (elapsedTime % 3000)) / 1000)}s
-              </div>
-              <div className="w-24 h-1 bg-white/30 rounded-full mt-1">
-                <div
-                  className="h-1 bg-white rounded-full transition-all duration-100"
-                  style={{ width: `${getColorProgress()}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Center Text */}
-        <div className="text-center text-white">
-          <h1 className="text-4xl font-bold mb-2">
-            {currentColor?.toUpperCase()}
-          </h1>
-          <p className="text-lg opacity-80">
-            Robot camera analyzing display...
-          </p>
-        </div>
-      </div>
+      />
     );
   }
 
@@ -174,7 +153,7 @@ export function DisplayDefectTest({
                 <div>
                   <h3 className="font-medium">Red Display</h3>
                   <p className="text-sm text-gray-600">
-                    Screen will turn red for 3 seconds
+                    Screen will turn red for 7 seconds
                   </p>
                 </div>
               </div>
@@ -186,7 +165,7 @@ export function DisplayDefectTest({
                 <div>
                   <h3 className="font-medium">Green Display</h3>
                   <p className="text-sm text-gray-600">
-                    Screen will turn green for 3 seconds
+                    Screen will turn green for 7 seconds
                   </p>
                 </div>
               </div>

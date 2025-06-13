@@ -23,7 +23,7 @@ interface TouchTestResult {
 }
 
 interface ShapeTracingResult {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   accuracy: number;
   completionTime: number;
   tracePoints: Array<{ x: number; y: number; timestamp: number }>;
@@ -34,7 +34,7 @@ interface ShapeTracingResult {
 interface EnhancedTouchTestResult {
   basicTouch: TouchTestResult; // Keep for compatibility but create dummy data
   squareTracing: ShapeTracingResult;
-  circleTracing: ShapeTracingResult;
+  diamondTracing: ShapeTracingResult;
   overallScore: number;
 }
 
@@ -49,9 +49,9 @@ const testSteps: Step[] = [
     description: "Trace a square shape accurately",
   },
   {
-    id: "circle-tracing",
-    title: "Circle Tracing",
-    description: "Trace a circle shape accurately",
+    id: "diamond-tracing",
+    title: "Diamond Tracing",
+    description: "Trace a diamond shape accurately",
   },
   {
     id: "results",
@@ -69,7 +69,7 @@ export function EnhancedTouchscreenTest({
   );
   const [squareTracingResult, setSquareTracingResult] =
     useState<ShapeTracingResult | null>(null);
-  const [circleTracingResult, setCircleTracingResult] =
+  const [diamondTracingResult, setDiamondTracingResult] =
     useState<ShapeTracingResult | null>(null);
 
   const currentStep = testSteps[currentStepIndex];
@@ -79,13 +79,13 @@ export function EnhancedTouchscreenTest({
   }, []);
 
   const calculateOverallScore = useCallback(
-    (square: ShapeTracingResult, circle: ShapeTracingResult): number => {
+    (square: ShapeTracingResult, diamond: ShapeTracingResult): number => {
       // Shape tracing scoring (50% each)
       const squareScore = square.accuracy;
-      const circleScore = circle.accuracy;
+      const diamondScore = diamond.accuracy;
 
       // Average of both shape scores
-      const overall = (squareScore + circleScore) / 2;
+      const overall = (squareScore + diamondScore) / 2;
       return Math.round(overall);
     },
     []
@@ -95,16 +95,16 @@ export function EnhancedTouchscreenTest({
     (result: ShapeTracingResult) => {
       setSquareTracingResult(result);
       updateStepStatus("square-tracing", "completed");
-      updateStepStatus("circle-tracing", "active");
+      updateStepStatus("diamond-tracing", "active");
       setCurrentStepIndex(1);
     },
     [updateStepStatus]
   );
 
-  const handleCircleTracingComplete = useCallback(
+  const handleDiamondTracingComplete = useCallback(
     (result: ShapeTracingResult) => {
-      setCircleTracingResult(result);
-      updateStepStatus("circle-tracing", "completed");
+      setDiamondTracingResult(result);
+      updateStepStatus("diamond-tracing", "completed");
       updateStepStatus("results", "completed");
       setCurrentStepIndex(2);
 
@@ -125,7 +125,7 @@ export function EnhancedTouchscreenTest({
         const finalResult: EnhancedTouchTestResult = {
           basicTouch: dummyBasicTouch,
           squareTracing: squareTracingResult,
-          circleTracing: result,
+          diamondTracing: result,
           overallScore,
         };
 
@@ -223,17 +223,17 @@ export function EnhancedTouchscreenTest({
           />
         )}
 
-        {currentStep.id === "circle-tracing" && (
+        {currentStep.id === "diamond-tracing" && (
           <ShapeTracingTest
-            shape="circle"
-            onComplete={handleCircleTracingComplete}
+            shape="diamond"
+            onComplete={handleDiamondTracingComplete}
             testDuration={15000}
           />
         )}
 
         {currentStep.id === "results" &&
           squareTracingResult &&
-          circleTracingResult && (
+          diamondTracingResult && (
             <div className="flex items-center justify-center min-h-96 p-4">
               <div className="max-w-2xl mx-auto bg-white rounded-lg p-8 shadow-sm space-y-6">
                 <div className="text-center space-y-4">
@@ -243,7 +243,7 @@ export function EnhancedTouchscreenTest({
                   <div className="text-6xl font-bold text-blue-600">
                     {calculateOverallScore(
                       squareTracingResult,
-                      circleTracingResult
+                      diamondTracingResult
                     )}
                     %
                   </div>
@@ -266,14 +266,14 @@ export function EnhancedTouchscreenTest({
 
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <h3 className="font-medium text-gray-900 mb-2">
-                      Circle Tracing
+                      Diamond Tracing
                     </h3>
                     <div className="text-2xl font-bold text-purple-600">
-                      {circleTracingResult.accuracy}%
+                      {diamondTracingResult.accuracy}%
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
-                      {(circleTracingResult.completionTime / 1000).toFixed(1)}s
-                      • {circleTracingResult.tracePoints.length} points
+                      {(diamondTracingResult.completionTime / 1000).toFixed(1)}s
+                      • {diamondTracingResult.tracePoints.length} points
                     </p>
                   </div>
                 </div>
