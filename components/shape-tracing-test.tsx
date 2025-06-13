@@ -10,7 +10,7 @@ interface TracePoint {
 }
 
 interface ShapeTracingResult {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   accuracy: number; // 0-100 percentage
   completionTime: number;
   tracePoints: TracePoint[];
@@ -19,7 +19,7 @@ interface ShapeTracingResult {
 }
 
 interface ShapeTracingTestProps {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   onComplete: (result: ShapeTracingResult) => void;
   testDuration?: number;
 }
@@ -45,9 +45,9 @@ export function ShapeTracingTest({
 
   // Generate ideal shape points for comparison
   const generateIdealShapePoints = useCallback(
-    (shape: "square" | "circle"): TracePoint[] => {
+    (shape: "square" | "diamond"): TracePoint[] => {
       const points: TracePoint[] = [];
-      const numPoints = 100; // Number of points to generate for comparison
+      const numPoints = 100;
 
       if (shape === "square") {
         const halfSize = shapeSize / 2;
@@ -83,13 +83,37 @@ export function ShapeTracingTest({
             timestamp: 0,
           });
         }
-      } else if (shape === "circle") {
-        const radius = shapeSize / 2;
-        for (let i = 0; i < numPoints; i++) {
-          const angle = (i / numPoints) * 2 * Math.PI;
+      } else if (shape === "diamond") {
+        const halfSize = shapeSize / 2;
+        // Top to right
+        for (let i = 0; i < numPoints / 4; i++) {
           points.push({
-            x: centerX + radius * Math.cos(angle),
-            y: centerY + radius * Math.sin(angle),
+            x: centerX + (i / (numPoints / 4)) * halfSize,
+            y: centerY - halfSize + (i / (numPoints / 4)) * halfSize,
+            timestamp: 0,
+          });
+        }
+        // Right to bottom
+        for (let i = 0; i < numPoints / 4; i++) {
+          points.push({
+            x: centerX + halfSize - (i / (numPoints / 4)) * halfSize,
+            y: centerY + (i / (numPoints / 4)) * halfSize,
+            timestamp: 0,
+          });
+        }
+        // Bottom to left
+        for (let i = 0; i < numPoints / 4; i++) {
+          points.push({
+            x: centerX - (i / (numPoints / 4)) * halfSize,
+            y: centerY + halfSize - (i / (numPoints / 4)) * halfSize,
+            timestamp: 0,
+          });
+        }
+        // Left to top
+        for (let i = 0; i < numPoints / 4; i++) {
+          points.push({
+            x: centerX - halfSize + (i / (numPoints / 4)) * halfSize,
+            y: centerY - (i / (numPoints / 4)) * halfSize,
             timestamp: 0,
           });
         }
@@ -172,8 +196,13 @@ export function ShapeTracingTest({
     if (shape === "square") {
       const halfSize = shapeSize / 2;
       ctx.rect(centerX - halfSize, centerY - halfSize, shapeSize, shapeSize);
-    } else if (shape === "circle") {
-      ctx.arc(centerX, centerY, shapeSize / 2, 0, 2 * Math.PI);
+    } else if (shape === "diamond") {
+      const halfSize = shapeSize / 2;
+      ctx.moveTo(centerX, centerY - halfSize); // Top
+      ctx.lineTo(centerX + halfSize, centerY); // Right
+      ctx.lineTo(centerX, centerY + halfSize); // Bottom
+      ctx.lineTo(centerX - halfSize, centerY); // Left
+      ctx.closePath();
     }
 
     ctx.stroke();
@@ -182,9 +211,8 @@ export function ShapeTracingTest({
     // Draw start point indicator
     ctx.fillStyle = "#10b981";
     ctx.beginPath();
-    const startX =
-      shape === "square" ? centerX - shapeSize / 2 : centerX + shapeSize / 2;
-    const startY = shape === "square" ? centerY - shapeSize / 2 : centerY;
+    const startX = shape === "square" ? centerX - shapeSize / 2 : centerX;
+    const startY = shape === "square" ? centerY - shapeSize / 2 : centerY - shapeSize / 2;
     ctx.arc(startX, startY, 8, 0, 2 * Math.PI);
     ctx.fill();
 
@@ -363,7 +391,7 @@ export function ShapeTracingTest({
       <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-4 bg-gray-50">
         <div className="text-center space-y-3">
           <h2 className="text-xl font-bold text-gray-900">
-            Trace the {shape === "square" ? "Square" : "Circle"}
+            Trace the {shape === "square" ? "Square" : "Diamond"}
           </h2>
           <p className="text-gray-600 text-sm max-w-sm">
             Starting from the green dot, trace the shape with your finger as
@@ -396,7 +424,7 @@ export function ShapeTracingTest({
       <div className="bg-white/90 backdrop-blur-sm p-2 border-b">
         <div className="flex justify-between items-center text-sm">
           <span className="font-medium text-gray-900">
-            Trace the {shape === "square" ? "Square" : "Circle"}
+            Trace the {shape === "square" ? "Square" : "Diamond"}
           </span>
           <span className="text-gray-600">
             {Math.ceil(timeRemaining / 1000)}s
