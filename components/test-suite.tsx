@@ -25,7 +25,7 @@ interface TouchTestResult {
 }
 
 interface ShapeTracingResult {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   accuracy: number;
   completionTime: number;
   tracePoints: Array<{ x: number; y: number; timestamp: number }>;
@@ -36,7 +36,7 @@ interface ShapeTracingResult {
 interface EnhancedTouchTestResult {
   basicTouch: TouchTestResult;
   squareTracing: ShapeTracingResult;
-  circleTracing: ShapeTracingResult;
+  diamondTracing: ShapeTracingResult;
   overallScore: number;
 }
 
@@ -229,9 +229,11 @@ export function TestSuite({
       updateStepStatus("proximity", "completed");
       publishTestMessage("proximitySensor", result);
 
-      // Wait for robot confirmation
-      setIsWaitingForRobot(true);
-      setWaitingForTest("proximitySensor");
+      // Automatically continue to next test
+      setTimeout(() => {
+        setCurrentStepIndex(3);
+        updateStepStatus("report", "active");
+      }, 1000);
     },
     [results, updateStepStatus, publishTestMessage]
   );

@@ -43,7 +43,7 @@ interface TouchTestResult {
 }
 
 interface ShapeTracingResult {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   accuracy: number;
   completionTime: number;
   tracePoints: Array<{ x: number; y: number; timestamp: number }>;
@@ -54,7 +54,7 @@ interface ShapeTracingResult {
 interface EnhancedTouchTestResult {
   basicTouch: TouchTestResult;
   squareTracing: ShapeTracingResult;
-  circleTracing: ShapeTracingResult;
+  diamondTracing: ShapeTracingResult;
   overallScore: number;
 }
 
@@ -142,7 +142,7 @@ export function DiagnosticReport({
       if (touchscreen.basicTouch.averageResponseTime < 100) touchScore += 20;
       if (touchscreen.basicTouch.maxSimultaneousTouches >= 2) touchScore += 20;
       if (touchscreen.squareTracing.accuracy >= 70) touchScore += 20;
-      if (touchscreen.circleTracing.accuracy >= 70) touchScore += 20;
+      if (touchscreen.diamondTracing.accuracy >= 70) touchScore += 20;
       totalScore += touchScore;
       testCount++;
     }
@@ -182,10 +182,10 @@ export function DiagnosticReport({
       status: touchscreen.squareTracing.accuracy >= 70 ? "Good" : "Poor",
     });
     performanceData.push({
-      metric: "Circle Accuracy",
-      value: touchscreen.circleTracing.accuracy,
+      metric: "Diamond Accuracy",
+      value: touchscreen.diamondTracing.accuracy,
       threshold: 70,
-      status: touchscreen.circleTracing.accuracy >= 70 ? "Good" : "Poor",
+      status: touchscreen.diamondTracing.accuracy >= 70 ? "Good" : "Poor",
     });
   }
 
@@ -224,8 +224,8 @@ export function DiagnosticReport({
         passed: touchscreen.squareTracing.accuracy >= 70,
       },
       {
-        name: "Circle Tracing",
-        passed: touchscreen.circleTracing.accuracy >= 70,
+        name: "Diamond Tracing",
+        passed: touchscreen.diamondTracing.accuracy >= 70,
       }
     );
   }
@@ -535,9 +535,9 @@ export function DiagnosticReport({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Circle Accuracy:</span>
+                      <span className="text-gray-600">Diamond Accuracy:</span>
                       <span className="font-medium">
-                        {touchscreen.circleTracing.accuracy.toFixed(1)}%
+                        {touchscreen.diamondTracing.accuracy.toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between">

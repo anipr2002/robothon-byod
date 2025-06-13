@@ -13,7 +13,7 @@ interface ShapeTracingResult {
   shape: "square" | "diamond";
   accuracy: number; // 0-100 percentage
   completionTime: number;
-  tracePoints: TracePoint[];
+  tracePoints: Array<{ x: number; y: number; timestamp: number }>;
   totalDistance: number;
   deviationScore: number;
 }
