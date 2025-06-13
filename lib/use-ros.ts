@@ -61,15 +61,19 @@ export function useRos(options: UseRosOptions = {}) {
       return false;
     }
 
-    const topic = new ROSLIB.Topic({
-      ros: ros,
-      name: topicName,
-      messageType: messageType
-    });
+    try {
+      const topic = new ROSLIB.Topic({
+        ros: ros,
+        name: topicName,
+        messageType: messageType
+      });
 
-    const rosMessage = new ROSLIB.Message(message);
-    topic.publish(rosMessage);
-    return true;
+      topic.publish(message);
+      return true;
+    } catch (error) {
+      console.error('Error publishing ROS message:', error);
+      return false;
+    }
   }, [ros, isConnected]);
 
   useEffect(() => {

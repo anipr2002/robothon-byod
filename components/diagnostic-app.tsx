@@ -20,7 +20,7 @@ interface TouchTestResult {
 }
 
 interface ShapeTracingResult {
-  shape: "square" | "circle";
+  shape: "square" | "diamond";
   accuracy: number;
   completionTime: number;
   tracePoints: Array<{ x: number; y: number; timestamp: number }>;
@@ -31,7 +31,7 @@ interface ShapeTracingResult {
 interface EnhancedTouchTestResult {
   basicTouch: TouchTestResult;
   squareTracing: ShapeTracingResult;
-  circleTracing: ShapeTracingResult;
+  diamondTracing: ShapeTracingResult;
   overallScore: number;
 }
 
@@ -177,8 +177,8 @@ export function DiagnosticApp() {
               value: touchscreen.squareTracing.accuracy.toString(),
             },
             {
-              key: "circle_accuracy",
-              value: touchscreen.circleTracing.accuracy.toString(),
+              key: "diamond_accuracy",
+              value: touchscreen.diamondTracing.accuracy.toString(),
             },
           ],
         });
@@ -520,7 +520,7 @@ export function DiagnosticApp() {
                       Enhanced Touchscreen Test
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Multi-touch, square tracing, and circle tracing with
+                      Multi-touch, square tracing, and diamond tracing with
                       scoring
                     </p>
                   </div>

@@ -27,12 +27,14 @@ export function ProximitySensorTest({
   const [startTime, setStartTime] = useState<number>(0);
   const [sensorActivated, setSensorActivated] = useState<boolean>(false);
   const [activationTime, setActivationTime] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<number>(10);
 
   const handleStartTest = useCallback(() => {
     setTestState("countdown");
     setCountdown(10);
     setSensorActivated(false);
     setActivationTime(0);
+    setTimeRemaining(10);
   }, []);
 
   // Proximity sensor event handler
@@ -89,6 +91,16 @@ export function ProximitySensorTest({
         window.addEventListener("deviceproximity", handleProximityChange);
       }
 
+      // Update time remaining every 100ms
+      const timeUpdateInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, Math.ceil((10000 - elapsed) / 1000));
+        setTimeRemaining(remaining);
+        if (elapsed >= 10000) {
+          clearInterval(timeUpdateInterval);
+        }
+      }, 100);
+
       // 10-second test timer
       const testTimer = setTimeout(() => {
         const duration = Date.now() - startTime;
@@ -108,6 +120,7 @@ export function ProximitySensorTest({
           window.removeEventListener("deviceproximity", handleProximityChange);
         }
         clearTimeout(testTimer);
+        clearInterval(timeUpdateInterval);
       };
     }
   }, [
@@ -121,8 +134,7 @@ export function ProximitySensorTest({
 
   const getTimeRemaining = () => {
     if (testState === "testing") {
-      const elapsed = Date.now() - startTime;
-      return Math.max(0, Math.ceil((10000 - elapsed) / 1000));
+      return timeRemaining;
     }
     return 0;
   };
