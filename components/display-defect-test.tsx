@@ -26,23 +26,30 @@ export function DisplayDefectTest({
     null
   );
   const [startTime, setStartTime] = useState<number>(0);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState(21); // 21 seconds total (7s per color)
 
   const handleStartTest = useCallback(() => {
     setTestState("running");
     setStartTime(Date.now());
     setCurrentColor("red");
+    setTimeRemaining(21);
   }, []);
 
   useEffect(() => {
     if (testState !== "running") return;
 
-    const timer = setInterval(() => {
-      setElapsedTime(Date.now() - startTime);
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 0) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 0.1;
+      });
     }, 100);
 
-    return () => clearInterval(timer);
-  }, [testState, startTime]);
+    return () => clearInterval(interval);
+  }, [testState]);
 
   useEffect(() => {
     if (testState !== "running") return;
@@ -95,9 +102,7 @@ export function DisplayDefectTest({
 
   const getColorProgress = () => {
     if (testState !== "running") return 0;
-
-    const timeInCurrentColor = elapsedTime % 7000;
-    return (timeInCurrentColor / 7000) * 100;
+    return ((21 - timeRemaining) / 21) * 100;
   };
 
   if (testState === "completed") {
@@ -118,10 +123,25 @@ export function DisplayDefectTest({
 
   if (testState === "running") {
     return (
-      <div
-        className="fixed inset-0 w-full h-full"
-        style={{ backgroundColor: getBackgroundColor() }}
-      />
+      <div className="min-h-screen bg-gray-50 relative">
+        <div
+          className="fixed inset-0 w-full h-full"
+          style={{ backgroundColor: getBackgroundColor() }}
+        />
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg z-50">
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-900">
+              {Math.ceil(timeRemaining)}s | {currentColor?.toUpperCase() || "READY"}
+            </div>
+            <div className="w-48 h-1 bg-gray-200 rounded-full mt-1">
+              <div
+                className="bg-blue-600 h-1 rounded-full transition-all duration-1000"
+                style={{ width: `${getColorProgress()}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
